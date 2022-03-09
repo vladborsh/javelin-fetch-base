@@ -1,0 +1,14 @@
+version: "3"
+services:
+  app:
+    container_name: javelin-doser
+    restart: always
+    build: ./
+    ports:
+      - "80:3000"
+    environment:
+      SITES: https://raw.githubusercontent.com/opengs/uashieldtargets/v2/sites.json
+      PROXIES: https://raw.githubusercontent.com/opengs/uashieldtargets/v2/proxy.json
+      WORKERS: 10000
+    volumes:
+      - .:/app
