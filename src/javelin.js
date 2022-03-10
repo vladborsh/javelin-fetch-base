@@ -18,7 +18,7 @@ class Javelin {
 		this.workers = [];
     this.working = false;
     this.eventSource = new EventEmitter()
-		this.CONFIGURATION_INVALIDATION_TIME = 300000;
+		this.CONFIGURATION_INVALIDATION_TIME = process.env.CONFIGURATION_INVALIDATION_TIME;
 		this.initialize(numberOfWorkers).catch(error => {
       console.error('Wasnt able to initialize:', error)
     })
@@ -32,7 +32,7 @@ class Javelin {
       return this.initialize(numberOfWorkers, attemptNumber + 1)
     }
 
-    console.debug('Javelin is started', config)
+    console.debug('Javelin is started...')
     this.updateConfiguration(config)
     this.listenForConfigurationUpdates()
     
@@ -40,7 +40,8 @@ class Javelin {
   }
 
 	async getSitesAndProxies () {
-    while (this.working) { // escaping unavailable hosts
+    while (this.working) {
+			console.debug('Get sites and proxies...')
       try {
         const [proxies, sites] = await Promise.all([this.getProxies(), this.getSites()])
 
@@ -54,7 +55,6 @@ class Javelin {
         logError('Error while loading hosts', e)
       }
     }
-    return null
   }
 
 	updateConfiguration (configuration) {
@@ -68,7 +68,6 @@ class Javelin {
   }
 
 	listenForConfigurationUpdates(wasPreviousUpdateSuccessful = true) {
-    // eslint-disable-next-line @typescript-eslint/no-misused-promises
     setTimeout(async () => {
       if (!this.ddosConfiguration) {
         return this.listenForConfigurationUpdates(false)

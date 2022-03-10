@@ -1,4 +1,6 @@
 const { Javelin } = require('./src/javelin');
+const colors = require('colors');
+const {getTime} = require('./src/time-utils');
 
 const javelin = new Javelin(
 	process.env.WORKERS, 
@@ -8,12 +10,12 @@ const javelin = new Javelin(
 
 javelin.listen(
 	'attack', 
-	data => console.log('attack:', data.log)
+	data => console.log(getTime(), colors.green('attack:'), colors.green(data.log))
 );
 
 javelin.listen(
 	'error', 
-	data => console.log('error:', data.log)
+	data => console.log(getTime(), 'error:', data.log)
 );
 
 try {

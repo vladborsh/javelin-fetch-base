@@ -10,8 +10,7 @@ class Runner {
     this.proxies = props.proxies
     this.onlyProxy = props.onlyProxy
     this.eventSource = new EventEmitter()
-		this.ATTACKS_PER_TARGET = 64;
-		this.requestTimeout = 10000
+		this.ATTACKS_PER_TARGET = process.env.ATTACKS_PER_TARGET;
 		this.proxy = null;
   }
 
@@ -35,11 +34,19 @@ class Runner {
     this.onlyProxy = newProxyValue
   }
 
+	updateConfiguration (config) {
+		console.debug('Update config for worker...')
+    this.sites = config.sites
+    this.proxies = config.proxies
+  }
+
 	async sendTroops () {
-    const target = {
-      site: this.sites[getRandomInt(this.sites.length)],
+		const target = {
+			site: this.sites[getRandomInt(this.sites.length)],
       proxy: this.proxies
     };
+		
+		console.debug('Send troops to', target.site.page)
 
 		for (let attackIndex = 0; (attackIndex < this.ATTACKS_PER_TARGET); attackIndex++) {
 			if (!this.active) {

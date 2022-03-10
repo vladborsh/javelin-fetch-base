@@ -21,6 +21,10 @@ also it is easy to deploy in [cloud](https://devcenter.heroku.com/articles/conta
 
 ## Settings
 
-You can configure your workers number via WORKERS env variable
-SITES - sites which will be attacked 
-PROXIES - list of proxies
+Environment variables which you can configure (set it as a proccess env if you run it outside docker)
+
+- WORKERS - workers number
+- SITES - URL where we grab sites which will be attacked 
+- PROXIES -  URL where we grab list of proxies
+- ATTACKS_PER_TARGET - number of attacks per target
+- CONFIGURATION_INVALIDATION_TIME - config refresh interval
