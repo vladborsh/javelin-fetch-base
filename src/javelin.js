@@ -1,6 +1,7 @@
 const axios = require('axios-https-proxy-fix');
 const {Runner} = require('./runner');
-const { EventEmitter } = require('events')
+const { EventEmitter } = require('events');
+const { Console } = require('console');
 
 function logError(message, cause) {
 	console.error(message)
@@ -12,6 +13,7 @@ function logError(message, cause) {
 
 class Javelin {
 	constructor(numberOfWorkers, sitesUrl, proxiesUrl) {
+		this.targetUpdateTimes = 0;
 		this.numberOfWorkers = numberOfWorkers;
 		this.sitesUrl = sitesUrl;
 		this.proxiesUrl = proxiesUrl;
@@ -22,13 +24,19 @@ class Javelin {
 		this.initialize(numberOfWorkers).catch(error => {
       console.error('Wasnt able to initialize:', error)
     })
+		this.NUMBER_OF_ATTEMPTS = 5;
 	}
 
 	async initialize (numberOfWorkers, attemptNumber = 1) {
     const config = await this.getSitesAndProxies();
 	
     if (!config) {
-      console.debug(`No proxy configuration. Trying for ${attemptNumber} time`)
+      console.debug(`No proxy configuration. Trying for ${attemptNumber} time`);
+
+			if (attemptNumber === this.NUMBER_OF_ATTEMPTS) {
+				console.debug(`Number of attempts exhausted`);
+				return Promise.resolve();
+			}
       return this.initialize(numberOfWorkers, attemptNumber + 1)
     }
 
@@ -40,24 +48,28 @@ class Javelin {
   }
 
 	async getSitesAndProxies () {
-    while (this.working) {
-			console.debug('Get sites and proxies...')
-      try {
-        const [proxies, sites] = await Promise.all([this.getProxies(), this.getSites()])
-
-        if (proxies.status !== 200 || sites.status !== 200) continue
-
-        return {
-          sites: sites.data,
-          proxies: proxies.data
-        }
-      } catch (e) {
-        logError('Error while loading hosts', e)
-      }
-    }
+		console.debug(`Get sites and proxies... (${this.targetUpdateTimes})`);
+			try {
+				const [proxies, sites] = await Promise.all([this.getProxies(), this.getSites()])
+	
+				if (proxies.status !== 200 || sites.status !== 200) {
+					logError('Error while loading hosts, status code in not 200', proxies.status)
+					return null;
+				}
+	
+				this.targetUpdateTimes++;
+	
+				return {
+					sites: sites.data,
+					proxies: proxies.data
+				}
+			} catch (e) {
+				logError('Error while loading hosts', e)
+			}
   }
 
 	updateConfiguration (configuration) {
+		console.debug('Update configuration');
     this.ddosConfiguration = {
       ...configuration,
       updateTime: new Date()
@@ -73,7 +85,8 @@ class Javelin {
         return this.listenForConfigurationUpdates(false)
       }
 
-      const config = await this.getSitesAndProxies()
+			const config = await this.getSitesAndProxies()
+
       if (!config) {
         console.debug('Cant get configuration updates')
         return this.listenForConfigurationUpdates(false)
@@ -125,8 +138,6 @@ class Javelin {
   }
 
 	createNewWorker() {
-    console.debug('Creating new worker...')
-
     if (!this.ddosConfiguration) {
       throw new Error('Cannot create worker without configuration')
     }
@@ -143,8 +154,8 @@ class Javelin {
       })
     })
 
-    worker.eventSource.on('error', event => {
-      this.eventSource.emit('error', event)
+    worker.eventSource.on('err', event => {
+      this.eventSource.emit('err', event)
     })
     return worker
   }

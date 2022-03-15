@@ -13,11 +13,6 @@ javelin.listen(
 	data => console.log(getTime(), colors.green('attack:'), colors.green(data.log))
 );
 
-javelin.listen(
-	'error', 
-	data => console.log(getTime(), 'error:', data.log)
-);
-
 try {
 	javelin.start();
 } catch(e) {
